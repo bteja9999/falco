@@ -1,0 +1,96 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ .Values.falco.name }}
+  namespace: {{ .Values.falco.namespace }}
+  labels: {{- include "falco.daemonset.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels: {{- include "falco.daemonset.labels" . | nindent 6 }}
+  template:
+    metadata:
+      labels: {{- include "falco.daemonset.labels" . | nindent 8 }}
+      annotations:
+        rollme: {{ randAlphaNum 5 | quote }}
+    spec:
+      serviceAccount: {{ .Values.serviceAccount.name }}
+      serviceAccountName: {{ .Values.serviceAccount.name }}
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
+      containers:
+      - name: falco
+        imagePullPolicy: {{  .Values.falco.pullPolicy | quote }}
+        image: {{  .Values.falco.image  }}
+        securityContext:
+            privileged: true
+#           env:
+#           - name: SYSDIG_BPF_PROBE
+#             value: ""
+        args: [ "/usr/bin/falco", "-K", "/var/run/secrets/kubernetes.io/serviceaccount/token", "-k", "https://kubernetes.default", "-pk"]
+        volumeMounts:
+          - mountPath: /host/var/run/docker.sock
+            name: docker-socket
+          - mountPath: /host/dev
+            name: dev-fs
+          - mountPath: /host/proc
+            name: proc-fs
+            readOnly: true
+          - mountPath: /host/boot
+            name: boot-fs
+            readOnly: true
+          - mountPath: /host/lib/modules
+            name: lib-modules
+            readOnly: true
+          - mountPath: /host/usr
+            name: usr-fs
+            readOnly: true
+          - mountPath: /host/etc/
+            name: etc-fs
+            readOnly: true
+          - name: config-volume
+            mountPath: /etc/falco/falco.yaml
+            subPath: falco.yaml
+          - name: config-volume
+            mountPath: /etc/falco/falco_rules.yaml
+            subPath: falco_rules.yaml
+          - name: config-volume
+            mountPath: /etc/falco/falco_rules.local.yaml
+            subPath: falco_rules.local.yaml
+          - name: config-volume
+            mountPath: /etc/falco/k8s_audit_rules.yaml
+            subPath: k8s_audit_rules.yaml       
+      volumes:
+        - name: docker-socket
+          hostPath:
+            path: /var/run/docker.sock
+        - name: dev-fs
+          hostPath:
+            path: /dev
+        - name: proc-fs
+          hostPath:
+            path: /proc
+        - name: boot-fs
+          hostPath:
+            path: /boot
+        - name: lib-modules
+          hostPath:
+            path: /lib/modules
+        - name: usr-fs
+          hostPath:
+            path: /usr
+        - name: etc-fs
+          hostPath:
+            path: /etc
+        - name: config-volume
+          configMap:
+            name: {{ .Values.configMap.name }}
+            items:
+              - key: falco.yaml
+                path: falco.yaml
+              - key: falco_rules.yaml
+                path: falco_rules.yaml
+              - key: falco_rules.local.yaml
+                path: falco_rules.local.yaml
+              - key: k8s_audit_rules.yaml
+                path: k8s_audit_rules.yaml

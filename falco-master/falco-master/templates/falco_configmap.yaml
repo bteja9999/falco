@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.configMap.name }}
+  namespace: {{ .Values.namespace }}
+data:
+  falco_rules.local.yaml: |-
+{{ .Files.Get "falco-config/falco_rules.local.yaml"| indent 4 }}
+  falco_rules.yaml: |-
+{{ tpl ( .Files.Get "falco-config/falco_rules.yaml")  .| indent 4 }}
+  falco.yaml: |-
+{{ tpl (.Files.Get "falco-config/falco.yaml") .| indent 4 }}
+  k8s_audit_rules.yaml: |-
+{{ tpl ( .Files.Get "falco-config/k8s_audit_rules.yaml") .| indent 4 }}

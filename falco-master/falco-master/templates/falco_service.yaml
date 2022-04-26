@@ -1,0 +1,15 @@
+{{- if .Values.service.enabled }}
+kind: Service
+apiVersion: v1
+metadata:
+  name: {{ .Values.service.name}}
+  namespace: {{ .Values.service.namespace}}
+  labels: {{- include "falco.service.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type}}
+  selector: {{- include "falco.service.labels" . | nindent 4 }}
+  ports:
+  - protocol: {{ .Values.service.protocol }}
+    port: {{ .Values.service.port}}
+    nodePort: {{ .Values.service.nodePort}}
+{{- end}}
